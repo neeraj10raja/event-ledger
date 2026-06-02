@@ -8,7 +8,7 @@ from app.core.errors import AccountServiceClientError, AccountServiceUnavailable
 from app.core.logging import get_logger
 from app.core.metrics import events_applied_total, outbox_depth
 from app.db.repository import EventRepository, OutboxRepository
-from app.db.session import SessionLocal
+from app.db import session as session_mod
 from app.services.account_client import AccountClient
 
 logger = get_logger("outbox_replayer")
@@ -52,7 +52,7 @@ class OutboxReplayer:
     async def drain_once(self) -> int:
         """Attempt to replay all pending entries. Returns count successfully replayed."""
         replayed = 0
-        async with SessionLocal() as session:
+        async with session_mod.SessionLocal() as session:
             outbox = OutboxRepository(session)
             events = EventRepository(session)
             pending = await outbox.list_pending(limit=50)
