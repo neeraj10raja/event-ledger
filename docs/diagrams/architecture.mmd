@@ -1,0 +1,29 @@
+%% System architecture: clients hit the Gateway, which calls the Account Service.
+%% Both export traces to the OTel Collector and expose Prometheus metrics.
+flowchart LR
+    Client([Browser / Client])
+    subgraph Gateway["Event Gateway (public, :8000)"]
+        GW_API[REST API]
+        GW_DB[(SQLite\nevents, outbox, audit_log)]
+        GW_OB[Outbox Replayer\n(background task)]
+    end
+    subgraph Account["Account Service (internal, :8001)"]
+        AC_API[REST API]
+        AC_DB[(SQLite\ntransactions, audit_log)]
+    end
+    OTEL[OTel Collector]
+    JAEGER[Jaeger UI :16686]
+    PROM[Prometheus :9090]
+
+    Client -->|HTTP| GW_API
+    GW_API -->|sync REST + W3C traceparent| AC_API
+    GW_API <--> GW_DB
+    GW_OB -->|drain queued| AC_API
+    GW_OB <--> GW_DB
+    AC_API <--> AC_DB
+
+    GW_API -.OTLP.-> OTEL
+    AC_API -.OTLP.-> OTEL
+    OTEL -.-> JAEGER
+    PROM -.scrape /metrics.-> GW_API
+    PROM -.scrape /metrics.-> AC_API

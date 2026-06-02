@@ -1,0 +1,11 @@
+%% Lifecycle of an event in the Gateway's local store.
+stateDiagram-v2
+    [*] --> RECEIVED: validated + persisted
+    RECEIVED --> APPLIED: Account Service 2xx
+    RECEIVED --> QUEUED: timeout / 5xx / CB open
+    RECEIVED --> FAILED: Account Service 4xx (permanent)
+    QUEUED --> APPLIED: outbox replayer succeeds
+    QUEUED --> FAILED: replay hits permanent 4xx
+    APPLIED --> APPLIED: duplicate POST (idempotent hit)
+    FAILED --> [*]
+    APPLIED --> [*]

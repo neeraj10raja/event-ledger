@@ -1,0 +1,32 @@
+%% Happy path + degraded path for POST /events.
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant G as Gateway
+    participant DB as Gateway DB
+    participant A as Account Service
+    participant ADB as Account DB
+
+    C->>G: POST /events {eventId, accountId, type, amount, ...}
+    G->>G: Validate (Pydantic)
+    G->>DB: SELECT event by eventId
+    alt eventId exists & APPLIED
+        DB-->>G: existing event
+        G-->>C: 200 (idempotent hit)
+    else new event
+        G->>DB: INSERT event status=RECEIVED + audit RECEIVED
+        G->>A: POST /accounts/{id}/transactions (traceparent)
+        alt account responds 2xx
+            A->>ADB: INSERT tx ON CONFLICT DO NOTHING
+            A-->>G: 201 {balance}
+            G->>DB: UPDATE status=APPLIED + audit APPLIED
+            G-->>C: 201 {event}
+        else timeout / 5xx after retries / circuit open
+            G->>DB: UPDATE status=QUEUED, insert outbox + audit QUEUED
+            G-->>C: 503 {status: "QUEUED"}
+            Note over G,A: Outbox replayer drains when circuit closes
+        else account 4xx (e.g. validation)
+            G->>DB: UPDATE status=FAILED + audit FAILED
+            G-->>C: 4xx {error}
+        end
+    end
