@@ -1,0 +1,78 @@
+services:
+  gateway:
+    build:
+      context: ./services/gateway
+    image: event-ledger/gateway:0.1.0
+    container_name: event-ledger-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      ACCOUNT_SERVICE_URL: http://account:8001
+      DATABASE_URL: sqlite+aiosqlite:////app/data/gateway.db
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_ENABLED: "true"
+      SERVICE_NAME: event-gateway
+    volumes:
+      - gateway-data:/app/data
+    depends_on:
+      account:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+
+  account:
+    build:
+      context: ./services/account
+    image: event-ledger/account:0.1.0
+    container_name: event-ledger-account
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////app/data/account.db
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_ENABLED: "true"
+      SERVICE_NAME: account-service
+    volumes:
+      - account-data:/app/data
+    depends_on:
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    container_name: event-ledger-otel
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./infra/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4318:4318"
+      - "4317:4317"
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: event-ledger-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"  # UI
+      - "14250:14250"
+      - "4317"          # internal OTLP gRPC
+
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    container_name: event-ledger-prometheus
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - gateway
+      - account
+
+volumes:
+  gateway-data:
+  account-data:
