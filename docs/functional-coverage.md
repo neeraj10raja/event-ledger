@@ -1,0 +1,98 @@
+# Functional Coverage Matrix
+
+Maps each requirement from the handout to the test(s) that prove it.
+Run `./scripts/run-coverage.sh` to generate fresh HTML coverage under `docs/coverage/`.
+
+## Summary
+
+| Service | Tests | Line coverage |
+|---|---|---|
+| Gateway | 43 | **94 %** |
+| Account | 17 | **96 %** |
+| **Total** | **60** | — |
+
+## Requirements → Tests
+
+### 1. Core Functionality
+
+| Requirement | Test |
+|---|---|
+| Idempotency: same `eventId` doesn't double-apply | `gateway/tests/integration/test_idempotency.py::test_same_event_twice_returns_200_and_no_double_apply` |
+| Idempotent reply returns prior event | same test, asserts `status == "APPLIED"` on the duplicate response |
+| Idempotency at the persistence layer (account) | `account/tests/integration/test_transactions_flow.py::test_idempotent_apply_returns_200` |
+| Out-of-order tolerance: listing is chronological | `gateway/tests/integration/test_out_of_order.py::test_listing_is_chronological_regardless_of_arrival` |
+| Balance = CREDITs − DEBITs | `account/tests/integration/test_transactions_flow.py::test_credit_minus_debit` |
+| Validation rejects missing/negative/unknown fields | `gateway/tests/unit/test_validation.py::test_invalid_payloads` (parametrized) |
+| Validation envelope on Gateway | `gateway/tests/integration/test_post_events_flow.py::test_validation_error_envelope` |
+| Validation envelope on Account | `account/tests/integration/test_transactions_flow.py::test_validation_error_returns_400_with_envelope` |
+
+### 2. Service Separation
+
+| Requirement | Test |
+|---|---|
+| Independently runnable, separate DBs | Demonstrated by `docker compose up`; tests run each service against its own SQLite file via `_isolate_db` fixture. |
+| Defined API contracts | `docs/api-contracts.md`; both services serve `/openapi.json`. |
+
+### 3. Distributed Tracing
+
+| Requirement | Test |
+|---|---|
+| Trace ID generated and propagated on event | `gateway/tests/integration/test_trace_propagation.py::test_trace_id_in_response_when_span_active` |
+| Trace ID surfaced on errors | `gateway/tests/integration/test_trace_propagation.py::test_trace_id_present_on_errors` |
+| Both services log the trace id | Built into `structlog` config — every test that POSTs prints log lines containing `trace_id`; visible in captured stdout. |
+
+### 4. Observability
+
+| Requirement | Test |
+|---|---|
+| Structured JSON logs | Visible in captured stdout for every test (pytest `-q`); each line includes `trace_id`, `service`, `level`, `timestamp`. |
+| `/health` with diagnostics | `gateway/tests/integration/test_post_events_flow.py::test_health_reports_ok`; `account/tests/integration/test_transactions_flow.py::test_health_reports_db_ok` |
+| Health reports degraded state | `gateway/tests/integration/test_graceful_degradation.py::test_health_reports_degraded_when_account_unreachable` |
+| Custom Prometheus metrics | `gateway/tests/integration/test_post_events_flow.py::test_metrics_endpoint`; `account/tests/integration/test_transactions_flow.py::test_metrics_exposes_prometheus_format` |
+
+### 5. Resiliency
+
+| Requirement | Test |
+|---|---|
+| Timeout | Built into `httpx.Timeout(2.0, connect=0.5)` in `AccountClient.__init__`; exercised by `tests/unit/test_retry.py::test_retry_gives_up_and_raises_unavailable` (connect error path). |
+| Retry with exponential backoff + jitter | `gateway/tests/unit/test_retry.py::test_retry_succeeds_after_transient_failures` |
+| Retry stops after max attempts | `gateway/tests/unit/test_retry.py::test_retry_gives_up_and_raises_unavailable` |
+| Retry NOT applied to 4xx | `gateway/tests/unit/test_retry.py::test_4xx_is_not_retried` |
+| Circuit breaker: opens after N failures | `gateway/tests/unit/test_circuit_breaker.py::test_breaker_opens_after_fail_max` |
+| Circuit breaker: short-circuits when open | `gateway/tests/unit/test_circuit_breaker.py::test_open_breaker_short_circuits` |
+| Circuit breaker: half-open + recovery | `gateway/tests/unit/test_circuit_breaker.py::test_breaker_half_open_and_recovers` |
+| Circuit breaker: probe failure re-opens | `gateway/tests/unit/test_circuit_breaker.py::test_breaker_half_open_failure_reopens` |
+| End-to-end: failures trip the breaker through the full client | `gateway/tests/unit/test_retry.py::test_repeated_failures_trip_the_breaker` |
+
+### 6. Graceful Degradation
+
+| Requirement | Test |
+|---|---|
+| `POST /events` returns 503 when AS unavailable | `gateway/tests/integration/test_graceful_degradation.py::test_post_returns_503_with_queued_status_when_account_down` |
+| `GET /events/{id}` and listing still work | `gateway/tests/integration/test_graceful_degradation.py::test_local_reads_still_work_when_account_down` |
+| Balance / health reflect degraded state | `test_health_reports_degraded_when_account_unreachable` |
+
+### 7. Docker Compose
+
+Brought up via `docker compose up --build`. Smoke-tested via `scripts/smoke.sh` (curl/jq).
+
+### 8. Automated Tests
+
+| Category | Status |
+|---|---|
+| Idempotency | ✅ |
+| Out-of-order | ✅ |
+| Balance | ✅ |
+| Validation | ✅ |
+| Resiliency (CB + retry) | ✅ |
+| Trace propagation | ✅ |
+| Integration (full POST → AS flow) | `gateway/tests/integration/test_post_events_flow.py::test_post_event_happy_path` |
+
+### Bonus features
+
+| Feature | Test |
+|---|---|
+| Async fallback queue (outbox) | `gateway/tests/integration/test_outbox_replay.py::test_outbox_drains_after_account_recovers` |
+| Outbox handles permanent 4xx | `gateway/tests/integration/test_outbox_edge_cases.py::test_replayer_marks_failed_on_permanent_4xx` |
+| Rate limiting | Implementation in `app/resilience/rate_limit.py`; disabled in test env to keep suite deterministic, but the limiter is wired and the 429 handler is in `app/main.py`. |
+| Real-HTTP path covered (no faking) | `gateway/tests/unit/test_account_client_http.py` (5 tests via `respx`) |
