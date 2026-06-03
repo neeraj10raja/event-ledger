@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install install-dev test coverage up down logs smoke clean rebuild urls fmt
+.PHONY: help install install-dev test coverage up down logs smoke verify clean rebuild urls fmt
 
 PY        := .venv/bin/python
 PIP       := .venv/bin/pip
@@ -37,6 +37,9 @@ logs:  ## Tail logs from both services.
 
 smoke:  ## Run the end-to-end smoke test against the running stack.
 	./scripts/smoke.sh
+
+verify:  ## Run the doc/code consistency verifier; writes docs/verification-report.md.
+	./scripts/verify.sh
 
 urls:  ## Print the local service URLs.
 	@printf "\n  Gateway   \033[36m%s\033[0m  (docs at /docs)\n" "http://localhost:8000"

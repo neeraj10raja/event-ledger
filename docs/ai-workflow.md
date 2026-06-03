@@ -4,17 +4,22 @@ This take-home was built with **Claude Code** (Anthropic's CLI agent for Claude 
 
 Below is the breakdown by SDLC phase, in the same shape as the deliverables Suresh outlined.
 
-## The three agents — concrete artifacts
+## The four agents — concrete artifacts
 
-The Design / Development / QA roles below are not just narrative — they exist as three **Claude Code subagents** under [`.claude/agents/`](../.claude/agents/), each with its own system prompt, tool restrictions, and hand-off rules. A future feature on this codebase can be built by invoking them in sequence:
+The Design / Development / QA / Verifier roles below are not just narrative — they exist as four **Claude Code subagents** under [`.claude/agents/`](../.claude/agents/), each with its own system prompt, tool restrictions, and hand-off rules. A future feature on this codebase can be built by invoking them in sequence:
 
 | Agent | File | Tools | Responsibility |
 |---|---|---|---|
 | **Design Agent** | [`design-agent.md`](../.claude/agents/design-agent.md) | Read, Write, Glob, Grep, WebFetch | Turn a request into a written design + diagrams. Cannot touch production code. |
 | **Development Agent** | [`development-agent.md`](../.claude/agents/development-agent.md) | Read, Write, Edit, Bash, Glob, Grep | Turn an approved design into clean code with error handling, logging, and audit wired in from the start. Cannot write tests. |
 | **QA Agent** | [`qa-agent.md`](../.claude/agents/qa-agent.md) | Read, Write, Edit, Bash, Glob, Grep | Turn a feature into tests, coverage reports, and an updated requirement→test matrix. Cannot modify production code. |
+| **Verifier Agent** | [`verifier-agent.md`](../.claude/agents/verifier-agent.md) | Read, Bash, Glob, Grep | Audit the work of the other three. Runs `scripts/verify.sh` and reports failures. **Cannot patch code, tests, or docs** — escalates findings to the appropriate sibling. Closes the actor-critic loop. |
 
-**Honest authorship note.** This take-home itself was built in a single Claude Code session organised around the three phases conceptually — not by invoking three discrete subagents serially. The subagent files codify the workflow as a **reusable artifact** so the same SDLC pattern can be repeated by a teammate, in a fresh session, or in a future feature on this codebase. They are the runbook, not the audit log of how this submission was authored.
+### Why the Verifier exists — the actor-critic loop
+
+Design → Development → QA on its own is an open loop: every agent does its job, and the work compounds, but nobody mechanically checks that the docs still match the code at the end. This is precisely where AI-assisted projects fail in production: an AI produces plausible-but-wrong output (a function reference that doesn't exist, a library claim that was replaced, a test name that was renamed), the next phase builds on it, and the defect ships. In this repo's own short history, a human reviewer caught four such defects — stale `pybreaker` reference, descoped Pact bonus claimed as delivered, an Account-Service endpoint mislabeled as a Gateway endpoint, and test-count drift. The **Verifier Agent** codifies that human reviewer's role as a runnable script ([`scripts/verify.sh`](../scripts/verify.sh)) and a CI job ([`verify` in ci.yml](../.github/workflows/ci.yml)), so the same class of defect is caught on every push — not after the fact. Each assertion in the script is a failure mode the project has actually shipped at least once.
+
+**Honest authorship note.** This take-home itself was built in a single Claude Code session organised around the four phases conceptually — not by invoking four discrete subagents serially. The subagent files codify the workflow as a **reusable artifact** so the same SDLC pattern can be repeated by a teammate, in a fresh session, or in a future feature on this codebase. They are the runbook, not the audit log of how this submission was authored.
 
 ## Design Agent
 

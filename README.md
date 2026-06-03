@@ -9,6 +9,7 @@
   <a href="https://github.com/neeraj10raja/event-ledger/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/neeraj10raja/event-ledger/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-62%20unit%2Fintegration%20%2B%20e2e-brightgreen">
   <img alt="Coverage" src="https://img.shields.io/badge/coverage-gateway%2094%25%20%7C%20account%2096%25-brightgreen">
+  <img alt="Verifier" src="https://img.shields.io/badge/doc%E2%86%94code%20drift-checked%20on%20every%20push-brightgreen">
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-blue?logo=python&logoColor=white">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white">
   <img alt="OpenTelemetry" src="https://img.shields.io/badge/tracing-OpenTelemetry-425CC7?logo=opentelemetry&logoColor=white">
@@ -202,12 +203,13 @@ First-class <code>audit_log</code> table on both services capturing every state 
 
 ## 🧪 Tests
 
-Testing is layered on three levels, all green on every push to `main` ([CI workflow ↗](.github/workflows/ci.yml)):
+Testing is layered on four levels, all green on every push to `main` ([CI workflow ↗](.github/workflows/ci.yml)):
 
 | Layer | What it proves | Where |
 |---|---|---|
 | **Unit + integration** (pytest) | Business logic, validation, idempotency, resiliency state transitions, trace propagation header — all in-process, no network | `services/{gateway,account}/tests/` |
 | **End-to-end smoke** (live HTTP) | The compose stack actually boots and serves real traffic across two services | `scripts/smoke.sh`, run by the `e2e-compose` CI job |
+| **Doc ↔ code consistency** (verifier) | Every claim in the docs is backed by something real in the code — test counts, endpoints, audit actions, diagrams, deliverables | `scripts/verify.sh`, run by the `verify` CI job; latest result in [`docs/verification-report.md`](docs/verification-report.md) |
 | **Cross-version matrix** | Code works on Python 3.11 *and* 3.12 | CI matrix |
 
 ```bash
@@ -236,6 +238,7 @@ What's covered, at a glance:
 - ✅ **Trace propagation** — W3C `traceparent` actually appears in the outbound HTTP request
 - ✅ **Outbox replay** — drains after recovery, marks FAILED on permanent 4xx
 - ✅ **Live stack** — full docker compose boot + cross-service smoke runs on every push
+- ✅ **Doc ↔ code drift** — 10 mechanical assertions ([report ↗](docs/verification-report.md)) catch the failure modes a human reviewer would otherwise spot by eye (stale library claims, wrong endpoint ownership, missing test files, drifted test counts)
 
 ---
 
