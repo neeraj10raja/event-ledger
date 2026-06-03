@@ -243,7 +243,6 @@ What's covered, at a glance:
 
 | Doc | Who it's for | What's inside |
 |---|---|---|
-| [`docs/overview.html`](docs/overview.html) | **Non-technical reader** | Standalone HTML — what the project is and why it matters, in plain English. Open in any browser. |
 | [`DESIGN.md`](DESIGN.md) | Engineer reviewing the design | Full design document — architecture, sequence flow, event state machine, resiliency rationale, trade-offs |
 | [`docs/api-contracts.md`](docs/api-contracts.md) | API consumer | Authoritative request/response shapes for every endpoint |
 | [`docs/functional-coverage.md`](docs/functional-coverage.md) | QA reviewer | Requirement → test mapping |
