@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/neeraj10raja/event-ledger/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/neeraj10raja/event-ledger/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Tests" src="https://img.shields.io/badge/tests-62%20passing-brightgreen">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-62%20unit%2Fintegration%20%2B%20e2e-brightgreen">
   <img alt="Coverage" src="https://img.shields.io/badge/coverage-gateway%2094%25%20%7C%20account%2096%25-brightgreen">
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-blue?logo=python&logoColor=white">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white">
@@ -26,7 +26,7 @@
 - 🪂 **Graceful degradation** — when Account is down, `POST /events` returns **503 with a durable QUEUED event**; local reads keep working; an outbox replayer drains automatically on recovery
 - 🔍 **End-to-end tracing** — W3C `traceparent` propagated by OpenTelemetry, visualized in Jaeger, stamped on every JSON log line
 - 📊 **Production-grade observability** — structured logs, Prometheus `/metrics`, DB-backed audit trail, request-rate limiting
-- ✅ **62 tests, 100% passing** — gateway 94% line coverage, account 96%; functional-coverage matrix maps every handout requirement to the specific test that proves it
+- ✅ **62 unit + integration tests passing** (gateway 94% / account 96% coverage) **plus a live end-to-end smoke check** that boots the full docker compose stack on every push — functional-coverage matrix maps every handout requirement to a specific test
 - 🚀 **One-command demo** — `make up` brings up six containers (services + Jaeger + Prometheus + OTel Collector)
 
 ---
@@ -202,17 +202,29 @@ First-class <code>audit_log</code> table on both services capturing every state 
 
 ## 🧪 Tests
 
+Testing is layered on three levels, all green on every push to `main` ([CI workflow ↗](.github/workflows/ci.yml)):
+
+| Layer | What it proves | Where |
+|---|---|---|
+| **Unit + integration** (pytest) | Business logic, validation, idempotency, resiliency state transitions, trace propagation header — all in-process, no network | `services/{gateway,account}/tests/` |
+| **End-to-end smoke** (live HTTP) | The compose stack actually boots and serves real traffic across two services | `scripts/smoke.sh`, run by the `e2e-compose` CI job |
+| **Cross-version matrix** | Code works on Python 3.11 *and* 3.12 | CI matrix |
+
 ```bash
 make install-dev   # install runtime + test deps
-make coverage      # run both suites, generate HTML under docs/coverage/
+make coverage      # run both pytest suites, generate HTML under docs/coverage/
+make up && make smoke   # run the e2e check locally
 ```
 
-| Service | Tests | Line Coverage |
+| Service | Tests (pytest) | Line Coverage |
 |---|---|---|
 | Gateway | 45 | **94 %** |
 | Account | 17 | **96 %** |
+| **Total** | **62** | — |
 
-Every requirement in the handout maps to a specific test in [`docs/functional-coverage.md`](docs/functional-coverage.md). HTML reports browsable under [`docs/coverage/`](docs/coverage/).
+Plus the live e2e smoke check enforced by CI, which exercises POST /events (happy + duplicate + out-of-order + invalid), the listing endpoint, the balance endpoint, and the `/metrics` exposition — against actual containers, not fakes.
+
+Every handout requirement maps to a specific test in [`docs/functional-coverage.md`](docs/functional-coverage.md). HTML coverage reports browsable under [`docs/coverage/`](docs/coverage/).
 
 What's covered, at a glance:
 
@@ -223,6 +235,7 @@ What's covered, at a glance:
 - ✅ **Graceful degradation** — 503 + QUEUED, local reads work, health reports degraded
 - ✅ **Trace propagation** — W3C `traceparent` actually appears in the outbound HTTP request
 - ✅ **Outbox replay** — drains after recovery, marks FAILED on permanent 4xx
+- ✅ **Live stack** — full docker compose boot + cross-service smoke runs on every push
 
 ---
 

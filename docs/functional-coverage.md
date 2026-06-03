@@ -88,6 +88,7 @@ Brought up via `docker compose up --build`. Smoke-tested via `scripts/smoke.sh` 
 | Resiliency (CB + retry) | ✅ |
 | Trace propagation | ✅ |
 | Integration (full POST → AS flow) | `gateway/tests/integration/test_post_events_flow.py::test_post_event_happy_path` |
+| **Live end-to-end** (real containers via docker compose) | `e2e-compose` job in `.github/workflows/ci.yml` runs `scripts/smoke.sh` against the booted stack on every push |
 
 ### Bonus features
 
