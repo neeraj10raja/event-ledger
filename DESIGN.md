@@ -77,13 +77,15 @@ The Gateway → Account call is wrapped in three layered patterns. Composition m
 |---|---|---|---|
 | **Timeout** | `httpx.Timeout(2.0, connect=0.5)` | hard ceiling per attempt | hung / slow downstream |
 | **Retry with exponential backoff + jitter** | `tenacity` | 3 attempts, 100 ms → 1.5 s, full jitter | transient network blips, 5xx |
-| **Circuit breaker** | `pybreaker` | `fail_max=5`, `reset_timeout=30s` | sustained downstream failure |
+| **Circuit breaker** | `app/resilience/circuit_breaker.py` (in-house async) | `fail_max=5`, `reset_timeout=30s` | sustained downstream failure |
 
 **Order of composition (outer → inner):** `circuit_breaker( retry( one_http_call ) )`.
 
 - Each Gateway request consumes **one** "breaker attempt." Inner retries do *not* inflate the failure counter, so a brief blip won't trip the breaker but a sustained outage will.
 - HTTP 4xx is treated as a **permanent** failure: no retry, no breaker count, immediate surface to the client.
-- Breaker state changes are observable: a `pybreaker` listener writes a structured log line *and* updates the `circuit_breaker_state` Prometheus gauge.
+- Breaker state changes update the `circuit_breaker_state` Prometheus gauge and emit a structured `circuit_breaker_state_change` log line.
+
+**Why an in-house breaker rather than `pybreaker`?** `pybreaker.call_async` is implemented via Tornado's `@gen.coroutine` and does not track failures in `await`ed asyncio calls — failed coroutines never reach the failure counter, so the breaker effectively never opens under asyncio. The in-house implementation (~100 lines) handles CLOSED → OPEN → HALF_OPEN → CLOSED transitions correctly for asyncio and is fully unit-tested in `services/gateway/tests/unit/test_circuit_breaker.py`.
 
 ### Async fallback queue (outbox)
 

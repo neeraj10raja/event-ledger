@@ -26,6 +26,10 @@ services:
       context: ./services/account
     image: event-ledger/account:0.1.0
     container_name: event-ledger-account
+    # The handout states the Account Service is internal. We publish 8001 to
+    # the host purely for demo/walkthrough convenience (curl, /docs, smoke
+    # script). In a real deployment this would be a cluster-internal port,
+    # reachable only via the Gateway over the private network.
     ports:
       - "8001:8001"
     environment:

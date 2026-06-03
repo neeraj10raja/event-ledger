@@ -54,7 +54,12 @@ Shut down with `docker compose down`. Volumes (`gateway-data`, `account-data`) p
 
 ```bash
 python3.11 -m venv .venv && source .venv/bin/activate
+
+# Runtime only (matches what the Docker images bake in):
 pip install -r services/gateway/requirements.txt -r services/account/requirements.txt
+
+# To also run the test suites and coverage:
+pip install -r services/gateway/requirements-dev.txt -r services/account/requirements-dev.txt
 ```
 
 In one terminal:
@@ -72,6 +77,8 @@ In another:
 
 ## Running the Tests
 
+Install test dependencies first (see above), then:
+
 ```bash
 ./scripts/run-coverage.sh
 ```
@@ -88,7 +95,7 @@ Without coverage:
 (cd services/account && pytest)
 ```
 
-Current results: **60 tests, 100 % passing**, line coverage **94 % (gateway) / 96 % (account)**.
+Current results: **62 tests, 100 % passing**, line coverage **94 % (gateway) / 96 % (account)**.
 
 The mapping from each handout requirement to the tests that prove it is in `docs/functional-coverage.md`.
 
@@ -125,6 +132,11 @@ Composition order: **`circuit_breaker( retry( one_http_call ) )`** — each end-
 | `GET /health` | `status: ok` | `status: degraded` |
 
 ---
+
+## Deployment Notes
+
+- **Account Service port (8001) exposure** — The handout describes the Account Service as internal, called only by the Gateway. The compose file publishes 8001 to the host for demo / walkthrough convenience (so you can curl `/health`, browse `/docs`, and run the smoke script). In a real deployment this port would be cluster-internal — remove the `ports:` mapping from the `account` service and rely on Docker's internal DNS (`http://account:8001`).
+- **Uvicorn access/startup logs are plain text** — Application logs (everything the services emit via `structlog`) are JSON with trace IDs. The lines Uvicorn writes itself ("Started server process", access logs at INFO) are plain text, which is the default Uvicorn behavior. Two ways to make them JSON in production: wire `structlog.stdlib.ProcessorFormatter` into the `uvicorn`/`uvicorn.access` loggers, or run behind a sidecar (Fluent Bit / Vector) that normalizes to JSON. Out of scope for this submission.
 
 ## Observability
 

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.audit.audit import write_audit
 from app.core.config import get_settings
 from app.core.metrics import transactions_applied_total
+from app.core.timestamps import to_utc_iso
 from app.db.models import Transaction
 from app.db.repository import TransactionRepository
 from app.schemas.transaction import AccountView, BalanceView, TransactionApplied, TransactionIn, TransactionView
@@ -27,7 +28,7 @@ class LedgerService:
             type=payload.type,
             amount=str(payload.amount),
             currency=payload.currency,
-            event_timestamp=payload.event_timestamp.isoformat(),
+            event_timestamp=to_utc_iso(payload.event_timestamp),
             applied_at=datetime.now(timezone.utc),
             trace_id=trace_id,
         )

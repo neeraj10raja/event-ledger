@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.errors import AccountServiceClientError, AccountServiceUnavailableError
 from app.core.logging import get_logger
 from app.core.metrics import events_applied_total, events_received_total
+from app.core.timestamps import to_utc_iso
 from app.db.models import Event
 from app.db.repository import EventRepository, OutboxRepository
 from app.schemas.event import EventIn, EventOut
@@ -73,7 +74,7 @@ class EventService:
             type=payload.type,
             amount=str(payload.amount),
             currency=payload.currency,
-            event_timestamp=payload.event_timestamp.isoformat(),
+            event_timestamp=to_utc_iso(payload.event_timestamp),
             metadata_json=json.dumps(payload.metadata) if payload.metadata else None,
             status="RECEIVED",
             received_at=datetime.now(timezone.utc),
