@@ -158,13 +158,25 @@ Trace the request end-to-end in Jaeger at <http://localhost:16686> — same trac
 
 ## 🪂 Graceful Degradation
 
+What a client sees when the Account Service is down. Endpoints are grouped by the service that owns them.
+
+**Gateway (`:8000` — public, what a client talks to)**
+
 | Endpoint | Account up | Account **down** |
 |---|---|---|
-| `POST /events` | `201` APPLIED | `503` **QUEUED** — durable, replayed later |
+| `POST /events` | `201` APPLIED | `503` **QUEUED** — durable, replayed by the outbox |
 | `GET /events/{id}` | `200` | `200` ✅ local read |
 | `GET /events?account=…` | `200` | `200` ✅ local read |
-| `GET /accounts/{id}/balance` | `200` | `503` (Account is source of truth) |
-| `GET /health` | `status: ok` | `status: degraded` |
+| `GET /health` | `status: ok` | `status: degraded` — `account_service: unreachable` |
+
+**Account Service (`:8001` — internal, source of truth for balances)**
+
+| Endpoint | Account up | Account **down** |
+|---|---|---|
+| `GET /accounts/{id}/balance` | `200` | Unreachable — no Gateway proxy by design; balance lives only on Account |
+| `GET /accounts/{id}` | `200` | Unreachable — same |
+
+In a real deployment the Account Service is cluster-internal, so a client wouldn't even know its address. If a balance read becomes a hard requirement when Account is down, the right move is to add a cache or read-replica — out of scope for the handout.
 
 ---
 

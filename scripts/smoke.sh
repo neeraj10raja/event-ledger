@@ -9,6 +9,18 @@ ACCOUNT=${ACCOUNT:-http://localhost:8001}
 say() { printf "\n\033[1;34m==> %s\033[0m\n" "$*"; }
 fail() { printf "\033[1;31mFAIL: %s\033[0m\n" "$*" >&2; exit 1; }
 
+# Portable UUID: uuidgen on macOS, /proc/sys/kernel/random/uuid on Linux,
+# random fallback elsewhere. Keeps CI working without extra packages.
+gen_id() {
+  if command -v uuidgen >/dev/null 2>&1; then
+    uuidgen | tr 'A-Z' 'a-z'
+  elif [ -r /proc/sys/kernel/random/uuid ]; then
+    cat /proc/sys/kernel/random/uuid
+  else
+    printf '%s-%s' "$(date +%s)" "$RANDOM"
+  fi
+}
+
 say "Health (gateway)"
 curl -fsS "$GATEWAY/health" | jq .
 
@@ -16,8 +28,8 @@ say "Health (account)"
 curl -fsS "$ACCOUNT/health" | jq .
 
 ACCT="acct-smoke-$(date +%s)"
-EID1="evt-$(uuidgen | tr A-Z a-z)"
-EID2="evt-$(uuidgen | tr A-Z a-z)"
+EID1="evt-$(gen_id)"
+EID2="evt-$(gen_id)"
 
 say "POST CREDIT 150 (expect 201)"
 curl -fsS -X POST "$GATEWAY/events" -H 'content-type: application/json' \
