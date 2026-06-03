@@ -241,14 +241,15 @@ What's covered, at a glance:
 
 ## 📚 Documentation
 
-| Doc | What's inside |
-|---|---|
-| [`DESIGN.md`](DESIGN.md) | Full design document — architecture, sequence flow, event state machine, resiliency choice rationale, trade-offs |
-| [`docs/api-contracts.md`](docs/api-contracts.md) | Authoritative request/response shapes for every endpoint |
-| [`docs/functional-coverage.md`](docs/functional-coverage.md) | Requirement → test mapping |
-| [`docs/ai-workflow.md`](docs/ai-workflow.md) | How AI tools were used across Design / Development / QA phases |
-| [`docs/diagrams/`](docs/diagrams/) | Mermaid sources for the architecture, sequence, and state diagrams |
-| [`docs/coverage/`](docs/coverage/) | Pre-rendered HTML coverage reports |
+| Doc | Who it's for | What's inside |
+|---|---|---|
+| [`docs/overview.html`](docs/overview.html) | **Non-technical reader** | Standalone HTML — what the project is and why it matters, in plain English. Open in any browser. |
+| [`DESIGN.md`](DESIGN.md) | Engineer reviewing the design | Full design document — architecture, sequence flow, event state machine, resiliency rationale, trade-offs |
+| [`docs/api-contracts.md`](docs/api-contracts.md) | API consumer | Authoritative request/response shapes for every endpoint |
+| [`docs/functional-coverage.md`](docs/functional-coverage.md) | QA reviewer | Requirement → test mapping |
+| [`docs/ai-workflow.md`](docs/ai-workflow.md) | Hiring manager | AI-augmented SDLC workflow, plus the three Claude Code subagents under [`.claude/agents/`](.claude/agents/) |
+| [`docs/diagrams/`](docs/diagrams/) | Anyone | Mermaid sources for the architecture, sequence, and state diagrams |
+| [`docs/coverage/`](docs/coverage/) | QA reviewer | Pre-rendered HTML coverage reports |
 
 ---
 

@@ -4,6 +4,18 @@ This take-home was built with **Claude Code** (Anthropic's CLI agent for Claude 
 
 Below is the breakdown by SDLC phase, in the same shape as the deliverables Suresh outlined.
 
+## The three agents — concrete artifacts
+
+The Design / Development / QA roles below are not just narrative — they exist as three **Claude Code subagents** under [`.claude/agents/`](../.claude/agents/), each with its own system prompt, tool restrictions, and hand-off rules. A future feature on this codebase can be built by invoking them in sequence:
+
+| Agent | File | Tools | Responsibility |
+|---|---|---|---|
+| **Design Agent** | [`design-agent.md`](../.claude/agents/design-agent.md) | Read, Write, Glob, Grep, WebFetch | Turn a request into a written design + diagrams. Cannot touch production code. |
+| **Development Agent** | [`development-agent.md`](../.claude/agents/development-agent.md) | Read, Write, Edit, Bash, Glob, Grep | Turn an approved design into clean code with error handling, logging, and audit wired in from the start. Cannot write tests. |
+| **QA Agent** | [`qa-agent.md`](../.claude/agents/qa-agent.md) | Read, Write, Edit, Bash, Glob, Grep | Turn a feature into tests, coverage reports, and an updated requirement→test matrix. Cannot modify production code. |
+
+**Honest authorship note.** This take-home itself was built in a single Claude Code session organised around the three phases conceptually — not by invoking three discrete subagents serially. The subagent files codify the workflow as a **reusable artifact** so the same SDLC pattern can be repeated by a teammate, in a fresh session, or in a future feature on this codebase. They are the runbook, not the audit log of how this submission was authored.
+
 ## Design Agent
 
 **What it did**
