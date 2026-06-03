@@ -57,7 +57,7 @@ services:
       - jaeger
 
   jaeger:
-    image: jaegertracing/all-in-one:1.62
+    image: jaegertracing/all-in-one:1.60
     container_name: event-ledger-jaeger
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
