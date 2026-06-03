@@ -15,7 +15,7 @@ Below is the breakdown by SDLC phase, in the same shape as the deliverables Sure
 **What I kept in the loop on**
 - Resiliency composition order (`circuit_breaker( retry( one_call ) )` vs. inverted).
 - Whether to include the Jaeger + OTel Collector stack vs. just trace IDs in logs.
-- Bonus feature scope (we agreed to include all four: Prometheus metrics, async fallback queue, rate limiting, contract tests).
+- Bonus feature scope (we agreed to include three: Prometheus metrics, async fallback queue, rate limiting). Pact-style contract tests were planned but descoped during implementation — `pact-python`'s native dependency bloat didn't justify its return given that the runtime contract is already captured by `docs/api-contracts.md`, both services' live `/openapi.json`, and the integration suite that exercises the full Gateway → Account flow.
 
 **Artifacts**
 - `DESIGN.md` — design document.
